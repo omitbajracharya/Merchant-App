@@ -6,13 +6,18 @@ import applicationRoutes from './routes/applications.routes.js';
 
 const app = express();
 
-const allowedOrigins = (
-  process.env.CORS_ORIGIN ||
-  'http://localhost:4200,https://merchant-payment-portal.netlify.app'
-)
+const envOrigins = (process.env.CORS_ORIGIN || '')
   .split(',')
   .map((origin) => origin.trim().replace(/^["']|["']$/g, '').replace(/\/$/, ''))
   .filter(Boolean);
+
+const allowedOrigins = Array.from(
+  new Set([
+    'http://localhost:4200',
+    'https://merchant-payment-portal.netlify.app',
+    ...envOrigins,
+  ])
+);
 
 // Security & CSP Headers
 app.use(
