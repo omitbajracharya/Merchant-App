@@ -2,10 +2,16 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import authRoutes from './routes/auth.routes.js';
-import applicationRoutes from './routes/application.routes.js';
+import applicationRoutes from './routes/applications.routes.js';
 
 const app = express();
 
+const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:4200')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+// Security & CSP Headers
 app.use(
   helmet({
     contentSecurityPolicy: {
@@ -14,7 +20,7 @@ app.use(
         scriptSrc: ["'self'"],
         styleSrc: ["'self'", "'unsafe-inline'"],
         imgSrc: ["'self'", 'data:'],
-        connectSrc: ["'self'", process.env.CORS_ORIGIN || 'http://localhost:4200'],
+        connectSrc: ["'self'", ...allowedOrigins],
         objectSrc: ["'none'"],
         frameAncestors: ["'none'"],
       },
@@ -22,23 +28,41 @@ app.use(
   })
 );
 
+// CORS
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:4200'],
+    origin: (origin, callback) => {
+      // Allow server-to-server / Postman / curl requests with no origin
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error(`CORS blocked for origin: ${origin}`));
+    },
     credentials: true,
   })
 );
 
 app.use(express.json({ limit: '1mb' }));
 
-app.get('/health', (_req, res) => res.json({ status: 'ok' }));
+// Health check
+app.get('/health', (_req, res) => {
+  res.json({ status: 'ok' });
+});
+
+// Routes
 app.use('/auth', authRoutes);
 app.use('/api/applications', applicationRoutes);
 
+// 404 handler
+app.use((_req, res) => {
+  res.status(404).json({ message: 'Route not found' });
+});
+
+// Global error handler
 app.use((err, _req, res, _next) => {
   console.error(err);
   res.status(err.status || 500).json({
-    message: process.env.NODE_ENV === 'production' ? 'Internal server error' : err.message,
+    message: err.message || 'Internal server error',
   });
 });
 
