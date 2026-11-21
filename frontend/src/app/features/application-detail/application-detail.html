@@ -1,0 +1,125 @@
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <a routerLink="/dashboard" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
+  </a>
+</div>
+
+@if (loading()) {
+  <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+} @else if (error()) {
+  <div class="alert alert-danger">{{ error() }}</div>
+} @else if (app()) {
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start mb-3">
+            <div>
+              <h4 class="fw-bold mb-1">{{ app()!.business_name || 'Untitled Draft' }}</h4>
+              <span class="text-muted small">{{ app()!.application_number }}</span>
+            </div>
+            <span class="badge bg-primary fs-6">{{ app()!.status }}</span>
+          </div>
+
+          <h6 class="text-uppercase text-muted small fw-bold mt-4">Business Details</h6>
+          <dl class="row small">
+            <dt class="col-sm-4">Legal Entity</dt><dd class="col-sm-8">{{ app()!.legal_entity_type || '—' }}</dd>
+            <dt class="col-sm-4">Registration #</dt><dd class="col-sm-8">{{ app()!.registration_number || '—' }}</dd>
+            <dt class="col-sm-4">Industry</dt><dd class="col-sm-8">{{ app()!.industry_category || '—' }}</dd>
+            <dt class="col-sm-4">Address</dt><dd class="col-sm-8">{{ app()!.business_address || '—' }}</dd>
+          </dl>
+
+          <h6 class="text-uppercase text-muted small fw-bold mt-4">Owner & Sensitive Information</h6>
+          <dl class="row small align-items-center">
+            <dt class="col-sm-4">Owner Name</dt><dd class="col-sm-8">{{ app()!.owner_full_name || '—' }}</dd>
+            <dt class="col-sm-4">Owner Email</dt><dd class="col-sm-8">{{ app()!.owner_email || '—' }}</dd>
+
+            <dt class="col-sm-4">Tax ID / SSN</dt>
+            <dd class="col-sm-8 d-flex align-items-center gap-2">
+              <code>{{ revealedTaxId() || app()!.owner_tax_id_masked || '—' }}</code>
+              @if (auth.hasRole(['REVIEWER', 'ADMIN']) && app()!.owner_tax_id_masked && !revealedTaxId()) {
+                <button class="btn btn-outline-dark btn-sm py-0" (click)="reveal('owner_tax_id')">Reveal</button>
+              }
+            </dd>
+
+            <dt class="col-sm-4">Bank Account</dt>
+            <dd class="col-sm-8 d-flex align-items-center gap-2">
+              <code>{{ revealedAccount() || app()!.account_number_masked || '—' }}</code>
+              @if (auth.hasRole(['REVIEWER', 'ADMIN']) && app()!.account_number_masked && !revealedAccount()) {
+                <button class="btn btn-outline-dark btn-sm py-0" (click)="reveal('account_number')">Reveal</button>
+              }
+            </dd>
+
+            <dt class="col-sm-4">Monthly Volume</dt>
+            <dd class="col-sm-8">{{ app()!.expected_monthly_volume ? (app()!.expected_monthly_volume | currency) : '—' }}</dd>
+          </dl>
+        </div>
+      </div>
+
+      <div class="card border-0 shadow-sm">
+        <div class="card-body">
+          <h5 class="fw-bold mb-3">Risk Review History</h5>
+          @for (rev of reviews(); track rev.id) {
+            <div class="border-start border-3 border-primary ps-3 mb-3">
+              <div class="d-flex justify-content-between">
+                <strong>{{ rev.decision }}</strong>
+                <span class="small text-muted">{{ rev.created_at | date: 'short' }}</span>
+              </div>
+              <div class="small text-muted">
+                By {{ rev.reviewer_name }} @if (rev.risk_score !== null) { • Risk Score: {{ rev.risk_score }}/100 }
+              </div>
+              <p class="mb-0 mt-1 small">{{ rev.notes }}</p>
+            </div>
+          } @empty {
+            <p class="text-muted small mb-0">No risk reviews recorded yet.</p>
+          }
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      @if (auth.isAdmin()) {
+        <div class="card border-0 shadow-sm mb-3">
+          <div class="card-body">
+            <h6 class="fw-bold mb-2">Assign Reviewer (Admin)</h6>
+            <select class="form-select form-select-sm mb-2" [(ngModel)]="selectedReviewerId">
+              <option [ngValue]="null">Unassigned</option>
+              @for (r of reviewers(); track r.id) {
+                <option [value]="r.id">{{ r.full_name }}</option>
+              }
+            </select>
+            <button class="btn btn-sm btn-dark w-100" (click)="assignReviewer()">Save Assignment</button>
+          </div>
+        </div>
+      }
+
+      @if (auth.hasRole(['REVIEWER', 'ADMIN'])) {
+        <div class="card border-0 shadow-sm">
+          <div class="card-body">
+            <h6 class="fw-bold mb-3">Record Risk Decision</h6>
+            <form [formGroup]="reviewForm" (ngSubmit)="submitReview()">
+              <div class="mb-2">
+                <label class="form-label small">Decision</label>
+                <select class="form-select form-select-sm" formControlName="decision">
+                  <option value="APPROVED">Approve</option>
+                  <option value="REJECTED">Reject</option>
+                  <option value="CHANGES_REQUESTED">Request Changes</option>
+                  <option value="COMMENT">Comment Only</option>
+                </select>
+              </div>
+              <div class="mb-2">
+                <label class="form-label small">Risk Score (0-100)</label>
+                <input type="number" class="form-control form-control-sm" formControlName="riskScore" min="0" max="100" />
+              </div>
+              <div class="mb-3">
+                <label class="form-label small">Review Notes *</label>
+                <textarea rows="3" class="form-control form-control-sm" formControlName="notes"></textarea>
+              </div>
+              <button class="btn btn-primary btn-sm w-100" [disabled]="reviewForm.invalid">Submit Decision</button>
+            </form>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+}

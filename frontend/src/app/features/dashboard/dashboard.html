@@ -1,0 +1,120 @@
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+  <div>
+    <h3 class="fw-bold mb-0">Merchant Applications</h3>
+    <p class="text-muted small mb-0">Role view: {{ auth.role() }}</p>
+  </div>
+
+  @if (auth.hasRole(['SALES', 'ADMIN'])) {
+    <a routerLink="/applications/new" class="btn btn-primary">
+      <i class="bi bi-plus-lg me-1"></i>New Application
+    </a>
+  }
+</div>
+
+<div class="card border-0 shadow-sm mb-3">
+  <div class="card-body row g-2 align-items-center">
+    <div class="col-md-5">
+      <input
+        type="text"
+        class="form-control"
+        placeholder="Search by business name or APP number..."
+        [ngModel]="search()"
+        (ngModelChange)="onSearchChange($event)"
+      />
+    </div>
+    <div class="col-md-3">
+      <select class="form-select" [ngModel]="status()" (ngModelChange)="onStatusChange($event)">
+        <option value="ALL">All Statuses</option>
+        <option value="DRAFT">Draft</option>
+        <option value="SUBMITTED">Submitted</option>
+        <option value="IN_REVIEW">In Review</option>
+        <option value="CHANGES_REQUESTED">Changes Requested</option>
+        <option value="APPROVED">Approved</option>
+        <option value="REJECTED">Rejected</option>
+      </select>
+    </div>
+    <div class="col-md-4 text-md-end">
+      <button class="btn btn-outline-secondary btn-sm" (click)="loadApplications()">
+        <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+      </button>
+    </div>
+  </div>
+</div>
+
+@if (loading()) {
+  <div class="text-center py-5">
+    <div class="spinner-border text-primary" role="status"></div>
+    <p class="text-muted mt-2">Loading applications...</p>
+  </div>
+} @else if (error()) {
+  <div class="alert alert-danger d-flex justify-content-between align-items-center">
+    <span>{{ error() }}</span>
+    <button class="btn btn-sm btn-danger" (click)="loadApplications()">Retry</button>
+  </div>
+} @else {
+  <div class="card border-0 shadow-sm">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>App #</th>
+            <th>Business Name</th>
+            <th>Status</th>
+            <th>Monthly Volume</th>
+            <th>Reviewer</th>
+            <th>Updated</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (app of applications(); track app.id) {
+            <tr>
+              <td class="fw-semibold">{{ app.application_number }}</td>
+              <td>{{ app.business_name || 'Untitled Draft' }}</td>
+              <td>
+                <span class="badge" [class]="statusBadge(app.status)">{{ app.status }}</span>
+              </td>
+              <td>{{ app.expected_monthly_volume ? (app.expected_monthly_volume | currency) : '—' }}</td>
+              <td>{{ app.assigned_reviewer_name || 'Unassigned' }}</td>
+              <td class="small text-muted">{{ app.updated_at | date: 'short' }}</td>
+              <td class="text-end">
+                <a [routerLink]="['/applications', app.id]" class="btn btn-sm btn-outline-primary me-1">
+                  View
+                </a>
+                @if (auth.hasRole(['SALES', 'ADMIN']) && (app.status === 'DRAFT' || app.status === 'CHANGES_REQUESTED')) {
+                  <a [routerLink]="['/applications', app.id, 'edit']" class="btn btn-sm btn-outline-secondary">
+                    Edit
+                  </a>
+                }
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="7" class="text-center text-muted py-4">No applications found.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    @if (pagination().totalPages > 1) {
+      <div class="card-footer bg-white d-flex justify-content-between align-items-center">
+        <span class="small text-muted">
+          Page {{ pagination().page }} of {{ pagination().totalPages }} ({{ pagination().total }} total)
+        </span>
+        <div class="btn-group btn-group-sm">
+          <button class="btn btn-outline-secondary" [disabled]="page() <= 1" (click)="changePage(page() - 1)">
+            Previous
+          </button>
+          <button
+            class="btn btn-outline-secondary"
+            [disabled]="page() >= pagination().totalPages"
+            (click)="changePage(page() + 1)"
+          >
+            Next
+          </button>
+        </div>
+      </div>
+    }
+  </div>
+}

@@ -1,0 +1,148 @@
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h3 class="fw-bold mb-0">{{ applicationId() ? 'Edit Merchant Application' : 'New Merchant Application' }}</h3>
+    <span class="small text-muted">
+      @if (saveStatus() === 'saving') {
+        <span class="text-primary">Saving draft...</span>
+      } @else if (saveStatus() === 'saved') {
+        <span class="text-success"><i class="bi bi-check-circle me-1"></i>Draft auto-saved</span>
+      } @else if (saveStatus() === 'error') {
+        <span class="text-danger">Auto-save failed (your edits are preserved)</span>
+      }
+    </span>
+  </div>
+  <a routerLink="/dashboard" class="btn btn-outline-secondary btn-sm">Back to Dashboard</a>
+</div>
+
+<ul class="nav nav-pills nav-fill mb-4 bg-white p-2 rounded shadow-sm">
+  <li class="nav-item">
+    <button type="button" class="nav-link" [class.active]="step() === 1" (click)="step.set(1)">1. Business</button>
+  </li>
+  <li class="nav-item">
+    <button type="button" class="nav-link" [class.active]="step() === 2" (click)="step.set(2)">2. Owner / KYC</button>
+  </li>
+  <li class="nav-item">
+    <button type="button" class="nav-link" [class.active]="step() === 3" (click)="step.set(3)">3. Banking</button>
+  </li>
+  <li class="nav-item">
+    <button type="button" class="nav-link" [class.active]="step() === 4" (click)="step.set(4)">4. Review & Submit</button>
+  </li>
+</ul>
+
+@if (submitError()) {
+  <div class="alert alert-danger">{{ submitError() }}</div>
+}
+
+<form [formGroup]="form" class="card border-0 shadow-sm p-4">
+  @if (step() === 1) {
+    <h5 class="mb-3">Business Information</h5>
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label">Business Name *</label>
+        <input class="form-control" formControlName="business_name" />
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Legal Entity Type *</label>
+        <select class="form-select" formControlName="legal_entity_type">
+          <option value="">Select...</option>
+          <option value="LLC">LLC</option>
+          <option value="Corporation">Corporation</option>
+          <option value="Sole Proprietorship">Sole Proprietorship</option>
+        </select>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Registration Number</label>
+        <input class="form-control" formControlName="registration_number" />
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Industry Category</label>
+        <input class="form-control" formControlName="industry_category" />
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Website URL</label>
+        <input class="form-control" formControlName="website_url" placeholder="https://example.com" />
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Business Address</label>
+        <input class="form-control" formControlName="business_address" />
+      </div>
+    </div>
+  }
+
+  @if (step() === 2) {
+    <h5 class="mb-3">Owner / KYC Details</h5>
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label">Owner Full Name *</label>
+        <input class="form-control" formControlName="owner_full_name" />
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Owner Email *</label>
+        <input type="email" class="form-control" formControlName="owner_email" />
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Owner Phone</label>
+        <input class="form-control" formControlName="owner_phone" />
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Tax ID / SSN (Synthetic Test Value)</label>
+        <input class="form-control" formControlName="owner_tax_id" placeholder="999-00-1234" />
+      </div>
+    </div>
+  }
+
+  @if (step() === 3) {
+    <h5 class="mb-3">Banking & Processing</h5>
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label">Bank Name *</label>
+        <input class="form-control" formControlName="bank_name" />
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Routing Number (9 digits) *</label>
+        <input class="form-control" formControlName="routing_number" placeholder="021000021" />
+        @if (form.controls.routing_number.touched && form.controls.routing_number.errors?.['invalidRouting']) {
+          <div class="text-danger small mt-1">Must be exactly 9 digits.</div>
+        }
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Account Number (Synthetic Test Value)</label>
+        <input class="form-control" formControlName="account_number" placeholder="000123456789" />
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Expected Monthly Volume ($)</label>
+        <input type="number" class="form-control" formControlName="expected_monthly_volume" />
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Avg Ticket Size ($)</label>
+        <input type="number" class="form-control" formControlName="average_ticket_size" />
+      </div>
+    </div>
+  }
+
+  @if (step() === 4) {
+    <h5 class="mb-3">Review & Submit</h5>
+    <dl class="row">
+      <dt class="col-sm-4">Business</dt>
+      <dd class="col-sm-8">{{ form.value.business_name || '—' }} ({{ form.value.legal_entity_type || '—' }})</dd>
+      <dt class="col-sm-4">Owner</dt>
+      <dd class="col-sm-8">{{ form.value.owner_full_name || '—' }} ({{ form.value.owner_email || '—' }})</dd>
+      <dt class="col-sm-4">Bank</dt>
+      <dd class="col-sm-8">{{ form.value.bank_name || '—' }} / Routing: {{ form.value.routing_number || '—' }}</dd>
+    </dl>
+  }
+
+  <div class="d-flex justify-content-between mt-4 pt-3 border-top">
+    <button type="button" class="btn btn-outline-secondary" [disabled]="step() === 1" (click)="step.set(step() - 1)">
+      Previous
+    </button>
+
+    @if (step() < 4) {
+      <button type="button" class="btn btn-primary" (click)="step.set(step() + 1)">Next</button>
+    } @else {
+      <button type="button" class="btn btn-success" [disabled]="form.invalid || submitting()" (click)="onSubmit()">
+        {{ submitting() ? 'Submitting...' : 'Submit Application' }}
+      </button>
+    }
+  </div>
+</form>
