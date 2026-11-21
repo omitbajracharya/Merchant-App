@@ -1,12 +1,13 @@
-import dotenv from 'dotenv';
+import 'dotenv/config';
 import app from '../src/app.js';
 
-dotenv.config();
+const PORT = process.env.PORT || 4000;
 
-// Local development listener (Vercel ignores this and uses the default export)
-if (process.env.VERCEL !== '1') {
-  const PORT = process.env.PORT || 4000;
-  app.listen(PORT, () => console.log(`API running on http://localhost:${PORT}`));
+// Only start a local server when NOT running on Vercel
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`API running on http://localhost:${PORT}`);
+  });
 }
 
 export default app;
