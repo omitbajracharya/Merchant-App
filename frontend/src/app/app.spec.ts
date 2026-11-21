@@ -11,7 +11,7 @@ describe('App', () => {
       imports: [App],
       providers: [
         provideZonelessChangeDetection(),
-        provideRouter([]),
+      provideRouter([]),
         provideHttpClient(),
       ],
     }).compileComponents();
